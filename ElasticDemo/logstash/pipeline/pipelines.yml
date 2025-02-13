@@ -1,0 +1,5 @@
+# config/pipelines.yml
+- pipeline.id: tcp_message_log
+  path.config: "/usr/share/logstash/config/conf.d/tcp_message.conf"
+- pipeline.id: log_server_log
+  path.config: "/usr/share/logstash/config/conf.d/beat_log_server.conf"

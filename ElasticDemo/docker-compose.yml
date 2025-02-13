@@ -1,0 +1,99 @@
+services:    
+  elasticsearch:
+    image: elastic/elasticsearch:8.17.1
+    container_name: elasticsearch
+    environment:
+      - cluster.name=docker-cluster # 設定叢集名稱
+      - node.name=elasticsearch # 設定節點名稱
+      # - discovery.seed_hosts= # 設定多節點使用
+      - cluster.initial_master_nodes=elasticsearch # 設定初始主節點
+      - bootstrap.memory_lock=true # 鎖定記憶體，避免被交換出去
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # 設定 JVM 記憶體
+      - xpack.security.enabled=false
+      # - xpack.security.transport.ssl.enabled=true
+      # - xpack.security.http.ssl.enabled=true # 如果需要 HTTP 層的 SSL
+    ulimits:
+      memlock: # 鎖定記憶體
+        soft: -1 # 設定-1代表不限制
+        hard: -1 # 設定-1代表不限制
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=90s"]
+      interval: 30s
+      retries: 3
+      start_period: 30s
+      timeout: 30s
+    volumes:
+      - ./volumes/elasticsearch/data:/usr/share/elasticsearch/data # 將資料目錄掛載到主機
+    ports:
+      - 9200:9200 # 將 Elasticsearch HTTP 連接埠映射到主機
+      - 9300:9300 # 將 Elasticsearch TCP 連接埠映射到主機
+    networks:
+      - app_network 
+
+  logstash:
+    image: elastic/logstash:8.17.1
+    container_name: logstash
+    volumes:
+      - ./logstash/pipeline/pipelines.yml:/usr/share/logstash/config/pipelines.yml # 掛載 Logstash 設定檔
+      - ./logstash/pipeline/conf.d:/usr/share/logstash/config/conf.d # 掛載 Logstash 設定檔
+    environment:
+      - LOGSTASH_PIPELINE.workers=2 # 設定 Logstash 工作執行緒數量
+      - LS_JAVA_OPTS=-Xms512m -Xmx512m
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9600/_node/stats | grep -q '\"status\":\"green\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    ports:
+      - 5044:5044 # 將 Logstash Beats 輸入連接埠映射到主機
+      - "5000:5000/tcp"  # TCP input
+      - "5000:5000/udp"
+      - 9600:9600 # 將 Logstash HTTP 連接埠映射到主機
+    networks:
+      - app_network
+
+  kibana:
+    image: elastic/kibana:8.17.1
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200 # 設定 Elasticsearch 主機
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - 5601:5601 # 將 Kibana 連接埠映射到主機
+    networks:
+      - app_network # 加入 app_network 網路
+
+  filebeat:
+    image: elastic/filebeat:8.17.1
+    container_name: filebeat
+    user: root # 使用 root 權限，以便讀取容器內的日誌
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    volumes:
+      - ./filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro # 須設定成唯獨
+      - ./volumes/filebeat/var/lib/docker/containers:/var/lib/docker/containers:ro # 監控 Docker 容器日誌 (或其他日誌目錄)
+      - ./volumes/log-server/data/logs:/log-server-logs:ro # 新增掛載 log-server 的日誌目錄
+    depends_on:
+      logstash:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  log-server: # run service 前須確認 image 是否已建立，運行 logServerDemo -> Build.dockerfile 建立 image
+    image: log-server:latest # 
+    container_name: log-server
+    ports:
+      - 5432:5432
+    volumes:
+    - ./volumes/log-server/data/logs:/app/logs # 將資料目錄掛載到主機
+    networks:
+        - app_network
+
+networks:
+  app_network:
+    driver: bridge
