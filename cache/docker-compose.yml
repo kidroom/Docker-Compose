@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  valkey:
+    image: bitnami/valkey:8.0
+    container_name: valkey
+    restart: always
+    user: root
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./volumes/valkey/data:/bitnami/valkey/data
+    environment:
+      - BITNAMI_DEBUG=true
+      - ALLOW_EMPTY_PASSWORD=yes
+      - VALKEY_SAVE="60 1"
+      - VALKEY_LOGLEVEL=notice
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7.0.7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./volumes/redis/data:/data
+    restart: always

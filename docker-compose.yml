@@ -1,13 +1,4 @@
 services:
-  redis:
-    image: redis:latest
-    container_name: redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - ./volumes/redis/data:/data
-    restart: always
-
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -20,32 +11,32 @@ services:
       - ./volumes/ollama/data:/data
     networks:
       - app_network
-    
+
   open-webui:
     build:
       context: .
       args:
-        OLLAMA_BASE_URL: '/ollama'
+        OLLAMA_BASE_URL: "/ollama"
       dockerfile: Dockerfile
     image: ghcr.io/open-webui/open-webui:latest
     container_name: open-webui
     volumes:
-      - ./volumes/open_webui/openwebui_models:/models  # 存储模型数据
-      - ./volumes/open_webui/openwebui_configs:/configs  # 存储配置文件
-      - ./volumes/open_webui/openwebui_cache:/cache  # 缓存数据
+      - ./volumes/open_webui/openwebui_models:/models # 存储模型数据
+      - ./volumes/open_webui/openwebui_configs:/configs # 存储配置文件
+      - ./volumes/open_webui/openwebui_cache:/cache # 缓存数据
     depends_on:
       - ollama
     ports:
       - 3000:8080
     environment:
-      - 'OLLAMA_BASE_URL=http://ollama:11434'
-      - 'WEBUI_SECRET_KEY='
+      - "OLLAMA_BASE_URL=http://ollama:11434"
+      - "WEBUI_SECRET_KEY="
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: unless-stopped
     networks:
       - app_network
-  
+
   anythingllm_test:
     image: mintplexlabs/anythingllm:latest
     container_name: anythingllm_test
@@ -91,15 +82,15 @@ services:
       - app_network
 
   postgres:
-    image: postgres:latest  # 使用 Postgres 15 镜像
+    image: postgres:latest # 使用 Postgres 15 镜像
     container_name: postgres
     restart: always
     ports:
-      - "5432:5432"  # 将容器的 5432 端口映射到主机
+      - "5432:5432" # 将容器的 5432 端口映射到主机
     environment:
-      POSTGRES_USER: leon     # 数据库用户名
+      POSTGRES_USER: leon # 数据库用户名
       POSTGRES_PASSWORD: 123456 # 数据库密码
-      POSTGRES_DB: TestDb   # 数据库名称
+      POSTGRES_DB: TestDb # 数据库名称
     volumes:
       - ./volumes/postgresql/data:/var/lib/postgresql/data # 持久化存储
     networks:
