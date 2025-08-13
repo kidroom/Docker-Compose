@@ -1,0 +1,22 @@
+services:
+  rancher:
+    image: rancher/rancher:latest
+    container_name: rancher
+    privileged: true
+    restart: unless-stopped
+    ports:
+      - "18080:80"
+      - "18443:443"
+    volumes:
+      - rancher_data:/var/lib/rancher
+    environment:
+      - CATTLE_BOOTSTRAP_PASSWORD=admin
+    networks:
+      - k3d-net
+
+networks:
+  k3d-net:
+    driver: bridge
+
+volumes:
+  rancher_data:

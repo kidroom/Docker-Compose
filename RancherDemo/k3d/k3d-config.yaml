@@ -1,0 +1,12 @@
+apiVersion: k3d.io/v1alpha3
+kind: Simple
+name: my-rancher-cluster
+servers: 1
+agents: 1
+ports:
+  - port: 0.0.0.0:9443:443
+    nodeFilters:
+      - loadbalancer
+  - port: 0.0.0.0:9444:80
+    nodeFilters:
+      - loadbalancer
