@@ -109,6 +109,31 @@ services:
     networks:
       - app_network
 
+  sftp_server:
+    # 1. 使用的 Image 名稱
+    image: atmoz/sftp:latest
+    
+    # 2. 設定容器名稱 (可選，便於管理)
+    container_name: sftp_server
+    
+    # 3. Port Mapping (將主機的 22 埠映射到容器的 22 埠)
+    # -p 22:22
+    ports:
+      - "22:22"
+      
+    # 4. 傳遞給容器的 Command 參數 (設定 SFTP 帳號密碼)
+    # 格式: user:password:uid:gid:homedir
+    command: test:123456:::SftpData
+    
+    # 5. 可選：設定 Volume 持久化資料
+    # 將容器內的 /home/17Life1111/17data 目錄映射到主機的 sftp_data 目錄
+    # 請確保 sftp_data 目錄存在且有適當權限
+    volumes:
+      - ./sftp_data:/home/test/SftpData
+    
+    # 6. 自動重啟策略 (建議加入，保持服務運行)
+    restart: unless-stopped
+
 networks:
   app_network:
     driver: bridge
