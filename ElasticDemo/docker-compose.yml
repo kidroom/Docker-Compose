@@ -9,7 +9,7 @@ services:
       - cluster.initial_master_nodes=elasticsearch # 設定初始主節點
       - bootstrap.memory_lock=true # 鎖定記憶體，避免被交換出去
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # 設定 JVM 記憶體
-      - xpack.security.enabled=false
+      - xpack.security.enabled=false # 啟用安全性
       # - xpack.security.transport.ssl.enabled=true
       # - xpack.security.http.ssl.enabled=true # 如果需要 HTTP 層的 SSL
     ulimits:
@@ -36,6 +36,8 @@ services:
     volumes:
       - ./logstash/pipeline/pipelines.yml:/usr/share/logstash/config/pipelines.yml # 掛載 Logstash 設定檔
       - ./logstash/pipeline/conf.d:/usr/share/logstash/config/conf.d # 掛載 Logstash 設定檔
+    env_file:
+      - ./env/elasticdemo.env
     environment:
       - LOGSTASH_PIPELINE.workers=2 # 設定 Logstash 工作執行緒數量
       - LS_JAVA_OPTS=-Xms512m -Xmx512m
@@ -61,9 +63,22 @@ services:
     container_name: kibana
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200 # 設定 Elasticsearch 主機
+      - KIBANA_ALERTING_ENABLED=true  # 確認警報功能已啟用
+      - KIBANA_ACTIONS_ENABLED=true   # 確認動作功能已啟用
+      - KIBANA_MAX_WAIT_SECONDS=120   # (可選) 增加 Kibana 等待 Elasticsearch 啟動的時間，特別是在單機啟動時
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=qitG8rU0e3X3vV7C7V4Jp6t9s2y5w8z1
+      - XPACK_SECURITY_ENCRYPTIONKEY=K1b2N3m4P5q6R7s8T9u0V1w2X3y4Z5a6
+      - XPACK_REPORTING_ENCRYPTIONKEY=rEporTKey1234567890abcdefABCDEF12
+      - logging.verbose=true
     depends_on:
       elasticsearch:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status | grep -q '\"overall\":{\"level\":\"available\"'"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     ports:
       - 5601:5601 # 將 Kibana 連接埠映射到主機
     networks:
@@ -85,7 +100,7 @@ services:
       - app_network
 
   log-server: # run service 前須確認 image 是否已建立，運行 logServerDemo -> Build.dockerfile 建立 image
-    image: log-server:latest # 
+    image: log-server:latest
     container_name: log-server
     ports:
       - 5432:5432
