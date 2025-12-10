@@ -82,7 +82,7 @@ services:
       - app_network
 
   postgres:
-    image: postgres:latest # 使用 Postgres 15 镜像
+    image: postgres:latest # 使用最新版PostgreSQL镜像
     container_name: postgres
     restart: always
     ports:
@@ -92,7 +92,7 @@ services:
       POSTGRES_PASSWORD: 123456 # 数据库密码
       POSTGRES_DB: TestDb # 数据库名称
     volumes:
-      - ./volumes/postgresql/data:/var/lib/postgresql/data # 持久化存储
+      - ./volumes/postgresql/data:/var/lib/postgresql # 更新挂载点以支持PostgreSQL 18+的目录结构
     networks:
       - app_network
 
@@ -110,14 +110,8 @@ services:
       - app_network
 
   sftp_server:
-    # 1. 使用的 Image 名稱
     image: atmoz/sftp:latest
-    
-    # 2. 設定容器名稱 (可選，便於管理)
     container_name: sftp_server
-    
-    # 3. Port Mapping (將主機的 22 埠映射到容器的 22 埠)
-    # -p 22:22
     ports:
       - "22:22"
       
